@@ -10,7 +10,6 @@ void menu(RenderWindow & window, std::string &nickName) {
     menuTexture1.loadFromFile("C:\\Users\\Tom\\Desktop\\opengl\\images\\111.png");
     menuTexture2.loadFromFile("C:\\Users\\Tom\\Desktop\\opengl\\images\\222.png");
     menuTexture3.loadFromFile("C:\\Users\\Tom\\Desktop\\opengl\\images\\333.png");
-    aboutTexture.loadFromFile("C:\\Users\\Tom\\Desktop\\opengl\\images\\about.png");
     Sprite menu1(menuTexture1), menu2(menuTexture2), menu3(menuTexture3), about(aboutTexture), menuBg(menuBackground);
     bool isMenu = 1;
     int menuNum = 0;

@@ -20,7 +20,6 @@ public:
         Name = name;
         w = W; h = H;
         image.loadFromFile("C:\\Users\\Tom\\Desktop\\opengl\\images\\" + File);
-        image.createMaskFromColor(Color(41, 33, 59));
         texture.loadFromImage(image);
         sprite.setTexture(texture);
         x = X; y = Y;
@@ -31,5 +30,5 @@ public:
         return FloatRect(x, y, w, h);
     }
 
-    virtual void update(float time) = 0;
+    virtual void update(float time) {};
 };

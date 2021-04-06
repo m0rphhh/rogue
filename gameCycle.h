@@ -7,6 +7,8 @@
 #include "LeaderBoard.h"
 #include <vector>
 #include <list>
+#include <memory>
+
 
 const int numberOfEasyEnemies = 4;
 const int numberOfHardEnemies = 3;
@@ -48,15 +50,15 @@ bool launchGameProcess()
     Text text("", font, 20);//создаем объект текст. закидываем в объект текст строку, шрифт, размер шрифта(в пикселях);//сам объект текст (не строка)
     text.setStyle(sf::Text::Bold | sf::Text::Underlined);
 
-    std::list<Character*>  characters;//создаю список, сюда буду кидать объекты.например врагов.
+    std::list<std::shared_ptr<Character>>  characters;//создаю список, сюда буду кидать объекты.например врагов.
     std::list<Character*>::iterator it;//итератор чтобы проходить по эл-там списка
     std::list<Character*>::iterator it2;
 
-    for (int i = 0; i < numberOfEasyEnemies; i++)//проходимся по элементам этого вектора(а именно по врагам)
-        characters.push_back(new EasyEnemy("easyenemy.png", easyEnemiesPos[i][0], easyEnemiesPos[i][1], 32.0, 32.0, "eEnemy"));//и закидываем в список всех наших врагов с карты
+    for (auto & easyEnemiesPo : easyEnemiesPos)//проходимся по элементам этого вектора(а именно по врагам)
+        characters.push_back(std::make_shared<EasyEnemy>("easyenemy.png", easyEnemiesPo[0], easyEnemiesPo[1], 32.0, 32.0, "eEnemy"));//и закидываем в список всех наших врагов с карты
 
-    for (int i = 0; i < numberOfHardEnemies; i++)//проходимся по элементам этого вектора(а именно по врагам)
-        characters.push_back(new HardEnemy("hardenemy.png", hardEnemiesPos[i][0], hardEnemiesPos[i][1], 64.0, 64.0, "hEnemy"));
+    for (auto & hardEnemiesPo : hardEnemiesPos)//проходимся по элементам этого вектора(а именно по врагам)
+       characters.push_back( std::make_shared<HardEnemy>("hardenemy.png", hardEnemiesPo[0], hardEnemiesPo[1], 64.0, 64.0, "hEnemy"));
 
     Clock clock;
     Clock gameTimeClock;
@@ -78,7 +80,9 @@ bool launchGameProcess()
         {
             if (event.type == sf::Event::Closed)
                 window.close();
-            if (p.isShoot) { p.isShoot = false; characters.push_back(new Bullet("bullet.png", p.x, p.y, 16, 16, p.dir, "bullet")); }
+            if (p.isShoot) { p.isShoot = false; characters.push_back(std::make_shared<Bullet>
+                    ("bullet.png", p.x, p.y, 16, 16, p.dir, "bullet")); }
+
         }
 
 
@@ -88,42 +92,44 @@ bool launchGameProcess()
         p.update(time);
         if(p.isPrincess) {p.playerScore += 100; LeaderBoard(window, p.playerScore, nickName); p.life = false; }
 
-        for (it = characters.begin(); it != characters.end();)//говорим что проходимся от начала до конца
+        for (auto it = characters.begin(); it != characters.end(); it++)//говорим что проходимся от начала до конца
         {
-            Character *b = *it;
+            std::shared_ptr<Character> b = *it;
             b->update(time);//вызываем ф-цию update для всех объектов (по сути для тех, кто жив)
-            if ((b->life == false)&&(b->Name == "eEnemy")){ it = characters.erase(it); delete b; p.playerScore += 20;}// если этот объект мертв, то удаляем его
-            if ((b->life == false)&&(b->Name == "hEnemy")){ it = characters.erase(it); delete b; p.playerScore += 50;}
-            if ((b->life == false)&&(b->Name == "bullet")) { it = characters.erase(it); delete b;}
-            else it++;//и идем курсором (итератором) к след объекту. так делаем со всеми объектами списка
+            if (!b->life && (b->Name == "eEnemy"))
+            {characters.erase(it);  b.reset();  p.playerScore += 20;break;}// если этот объект мертв, то удаляем его
+            if (!b->life && (b->Name == "hEnemy"))
+            {characters.erase(it);  b.reset(); p.playerScore += 50; break;}
+            if (!b->life && (b->Name == "bullet")) {characters.erase(it);  b.reset(); break;}//указатели переписать, shared, unique, weak
         }
 
         float LastHit = lastHit.getElapsedTime().asSeconds();
 
-        for (it = characters.begin(); it != characters.end(); it++)//проходимся по эл-там списка
+
+        for (auto it: characters)//foreach переписать
         {
-            if ((*it)->getRect().intersects(p.getRect()))//если прямоугольник спрайта объекта пересекается с игроком
+            if ((*it).getRect().intersects(p.getRect()))//если прямоугольник спрайта объекта пересекается с игроком
             {
                 if(LastHit >= 3) {
-                    if((*it)->Name == "eEnemy" ) { //разный урон (зависит от противника)
+                    if((*it).Name == "eEnemy" ) { //разный урон (зависит от противника)
                         p.health -= 10;
-                    }else if((*it)->Name == "hEnemy" ) {
+                    }else if((*it).Name == "hEnemy" ) {
                         p.health -= 20;
                     }else {
-                        (*it)->life = false;
+                        (*it).life = false;
                     }
                     lastHit.restart();
                 }
             }
 
 
-            for (it2 = characters.begin(); it2 != characters.end(); it2++){
-                if ((*it)->getRect() != (*it2)->getRect())//разные прямоугольники
-                    if (((*it)->getRect().intersects((*it2)->getRect())))//если столкнулись два объекта и они враги
+            for (auto it2: characters){ //foreach
+                if ((*it).getRect() != (*it2).getRect())//разные прямоугольники
+                    if (((*it).getRect().intersects((*it2).getRect())))//если столкнулись два объекта и они враги
                     {
-                        if((*it)->Name == "bullet") {
-                            (*it2)->health -= bulletDamage;
-                            (*it)->life = false;
+                        if((*it).Name == "bullet") {
+                            (*it2).health -= bulletDamage;
+                            (*it).life = false;
                         }
                     }
             }
@@ -169,8 +175,8 @@ bool launchGameProcess()
         window.draw(text);//рисую этот текст
 
         window.draw(p.sprite);
-        for (it = characters.begin(); it != characters.end(); it++){
-            window.draw((*it)->sprite); //рисуем врагов и пули
+        for (auto it: characters){ //foreach
+            window.draw((*it).sprite); //рисуем врагов и пули
         }
 
         window.display();
